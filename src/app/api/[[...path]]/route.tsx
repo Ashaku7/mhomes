@@ -1,0 +1,319 @@
+import { NextRequest, NextResponse } from 'next/server'
+
+// Simple route handler for basic API functionality
+export async function GET(request: NextRequest) {
+  const { pathname } = new URL(request.url)
+  
+  try {
+    // Root API endpoint
+    if (pathname === '/api/' || pathname === '/api') {
+      return NextResponse.json({
+        message: 'MHomes Resort API is running',
+        status: 'success',
+        timestamp: new Date().toISOString(),
+        endpoints: {
+          contact: '/api/contact',
+          booking: '/api/booking',
+          rooms: '/api/rooms',
+          reviews: '/api/reviews'
+        }
+      })
+    }
+
+    // Contact endpoint
+    if (pathname === '/api/contact') {
+      return NextResponse.json({
+        phone: '+1 (555) 123-4567',
+        email: 'info@mhomesresort.com',
+        address: 'Tropical Paradise Island, Maldives',
+        hours: {
+          'Monday - Friday': '9:00 AM - 6:00 PM',
+          'Saturday': '10:00 AM - 4:00 PM',
+          'Sunday': '12:00 PM - 4:00 PM'
+        }
+      })
+    }
+
+    // Rooms endpoint
+    if (pathname === '/api/rooms') {
+      return NextResponse.json({
+        rooms: [
+          {
+            id: 'ocean-villa',
+            name: 'Ocean Villa',
+            price: 1200,
+            features: ['Private Pool', 'Ocean View', '150 sqm', 'Butler Service'],
+            available: true
+          },
+          {
+            id: 'beach-suite',
+            name: 'Beach Suite',
+            price: 800,
+            features: ['Beach Access', 'King Bed', '80 sqm', 'Balcony'],
+            available: true
+          },
+          {
+            id: 'premium-room',
+            name: 'Premium Room',
+            price: 450,
+            features: ['Pool View', 'Queen Bed', '45 sqm', 'Mini Bar'],
+            available: true
+          },
+          {
+            id: 'deluxe-studio',
+            name: 'Deluxe Studio',
+            price: 320,
+            features: ['Garden View', 'Double Bed', '35 sqm', 'Work Desk'],
+            available: true
+          }
+        ]
+      })
+    }
+
+    // Reviews endpoint
+    if (pathname === '/api/reviews') {
+      return NextResponse.json({
+        reviews: [
+          {
+            id: 1,
+            name: 'Sarah Johnson',
+            location: 'New York, USA',
+            rating: 5,
+            text: 'Absolutely magical experience! The overwater villa was beyond our dreams, and the service was impeccable.',
+            date: '2024-12-15'
+          },
+          {
+            id: 2,
+            name: 'Marco Rodriguez',
+            location: 'Madrid, Spain',
+            rating: 5,
+            text: 'The perfect honeymoon destination. Every detail was carefully planned, from the private beach dinner to the couples spa treatments.',
+            date: '2024-12-10'
+          },
+          {
+            id: 3,
+            name: 'Emily Chen',
+            location: 'Singapore',
+            rating: 5,
+            text: 'Luxury redefined. The attention to detail and personalized service made our anniversary celebration truly unforgettable.',
+            date: '2024-12-05'
+          }
+        ],
+        averageRating: 5.0,
+        totalReviews: 248
+      })
+    }
+
+    // Booking placeholder endpoint
+    if (pathname === '/api/booking') {
+      return NextResponse.json({
+        message: 'Booking system coming soon!',
+        status: 'placeholder',
+        contact: {
+          phone: '+1 (555) 123-4567',
+          email: 'reservations@mhomesresort.com'
+        },
+        note: 'Please contact us directly for reservations until our online booking system is ready.'
+      })
+    }
+
+    // Default 404 for unknown endpoints
+    return NextResponse.json(
+      { 
+        error: 'Endpoint not found',
+        message: `The endpoint ${pathname} does not exist`,
+        availableEndpoints: ['/api/', '/api/contact', '/api/rooms', '/api/reviews', '/api/booking']
+      },
+      { status: 404 }
+    )
+
+  } catch (error) {
+    console.error('API Error:', error)
+    return NextResponse.json(
+      { 
+        error: 'Internal server error',
+        message: 'Something went wrong processing your request'
+      },
+      { status: 500 }
+    )
+  }
+}
+
+export async function POST(request: NextRequest) {
+  const { pathname } = new URL(request.url)
+  
+  try {
+    // Contact form submission
+    if (pathname === '/api/contact') {
+      const body = await request.json()
+      
+      // In a real application, you would:
+      // 1. Validate the input data
+      // 2. Save to database
+      // 3. Send email notification
+      // 4. Return appropriate response
+      
+      console.log('Contact form submission:', body)
+      
+      return NextResponse.json({
+        message: 'Thank you for your message! We will get back to you within 24 hours.',
+        status: 'success',
+        timestamp: new Date().toISOString()
+      })
+    }
+
+    // Review submission
+    if (pathname === '/api/reviews') {
+      const body = await request.json()
+      
+      console.log('Review submission:', body)
+      
+      return NextResponse.json({
+        message: 'Thank you for your review! It will be published after moderation.',
+        status: 'success',
+        timestamp: new Date().toISOString()
+      })
+    }
+
+    // Booking inquiry
+    if (pathname === '/api/booking') {
+      const body = await request.json()
+
+      console.log('Booking inquiry:', body)
+
+      return NextResponse.json({
+        message: 'Booking inquiry received! Our team will contact you within 2 hours to confirm your reservation.',
+        status: 'success',
+        timestamp: new Date().toISOString(),
+        inquiryId: `INQ-${Date.now()}`
+      })
+    }
+
+    // Chatbot endpoint
+    if (pathname === '/api/chat') {
+      const body = await request.json()
+      const userMessage = body.message || ''
+
+      const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'google_api_key'
+
+      if (GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY_HERE') {
+        // Fallback to rule-based if no API key
+        let response = 'I\'m here to help with your questions about MHomes Resort. How can I assist you today?'
+        const lowerMessage = userMessage.toLowerCase()
+
+        if (lowerMessage.includes('room') || lowerMessage.includes('accommodation')) {
+          response = 'We offer luxurious accommodations including Ocean Villas, Beach Suites, Premium Rooms, and Deluxe Studios. Prices range from $320 to $1,200 per night. Would you like more details on any specific room type?'
+        } else if (lowerMessage.includes('price') || lowerMessage.includes('cost')) {
+          response = 'Our room rates vary by season and type. Ocean Villas start at $1,200/night, Beach Suites at $800/night, Premium Rooms at $450/night, and Deluxe Studios at $320/night. Contact us for current availability and special rates.'
+        } else if (lowerMessage.includes('dining') || lowerMessage.includes('restaurant') || lowerMessage.includes('food')) {
+          response = 'Enjoy world-class dining at our Azure Restaurant (Michelin-starred), Sunset Lounge (bar & grill), and Poolside Café. We serve international fusion, Mediterranean, and continental cuisine.'
+        } else if (lowerMessage.includes('spa') || lowerMessage.includes('wellness') || lowerMessage.includes('massage')) {
+          response = 'Our luxury spa offers rejuvenating treatments inspired by ancient healing traditions. Book a couples massage or individual therapy session for ultimate relaxation.'
+        } else if (lowerMessage.includes('activity') || lowerMessage.includes('experience') || lowerMessage.includes('water sport')) {
+          response = 'Experience adventure with diving, snorkeling, kayaking, sailing, and cultural tours. Our fitness center is available 24/7 with personal trainers.'
+        } else if (lowerMessage.includes('contact') || lowerMessage.includes('phone') || lowerMessage.includes('email')) {
+          response = 'Reach us at +1 (555) 123-4567 or info@mhomesresort.com. Our office hours are Monday-Friday 9AM-6PM, Saturday 10AM-4PM, Sunday 12PM-4PM.'
+        } else if (lowerMessage.includes('location') || lowerMessage.includes('address')) {
+          response = 'MHomes Resort is located on Tropical Paradise Island in the Maldives, offering pristine beaches and crystal-clear waters.'
+        } else if (lowerMessage.includes('booking') || lowerMessage.includes('reservation')) {
+          response = 'Our online booking system is coming soon! For now, please contact our reservations team at +1 (555) 123-4567 or reservations@mhomesresort.com to make your reservation.'
+        } else if (lowerMessage.includes('payment') || lowerMessage.includes('pay')) {
+          response = 'We accept major credit cards, bank transfers, and digital payments. A 50% deposit is required to confirm your reservation, with the balance due upon arrival. Contact our team for payment options and assistance.'
+        } else if (lowerMessage.includes('facility') || lowerMessage.includes('amenities')) {
+          response = 'Our resort features high-speed WiFi, valet parking, private beach access, multiple restaurants, luxury spa, 24/7 fitness center, and premium concierge services.'
+        } else if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey')) {
+          response = 'Hello! Welcome to MHomes Resort. I\'m your virtual assistant. How can I help you plan your perfect vacation?'
+        } else if (lowerMessage.includes('thank') || lowerMessage.includes('thanks')) {
+          response = 'You\'re welcome! I\'m glad I could help. If you have any more questions about MHomes Resort, feel free to ask.'
+        }
+
+        return NextResponse.json({
+          response: response,
+          timestamp: new Date().toISOString()
+        })
+      }
+
+      // Use Gemini API
+      try {
+        const prompt = `You are a helpful virtual assistant for MHomes Resort, a luxury resort in the Maldives. Provide friendly, informative responses about the resort. Key information:
+- Location: Tropical Paradise Island, Maldives
+- Accommodations: Ocean Villas ($1,200/night), Beach Suites ($800/night), Premium Rooms ($450/night), Deluxe Studios ($320/night)
+- Dining: Azure Restaurant (Michelin-starred), Sunset Lounge (bar & grill), Poolside Café
+- Activities: Spa treatments, water sports (diving, snorkeling, kayaking), fitness center, cultural tours
+- Facilities: Private beach, infinity pool, high-speed WiFi, valet parking, luxury spa
+- Contact: +1 (555) 123-4567, info@mhomesresort.com
+- Payment: Major credit cards, 50% deposit required
+- Office hours: Mon-Fri 9AM-6PM, Sat 10AM-4PM, Sun 12PM-4PM
+
+User question: ${userMessage}
+
+Respond naturally and helpfully, keeping responses concise but informative.`
+
+        const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: prompt
+              }]
+            }]
+          })
+        })
+
+        if (!geminiResponse.ok) {
+          throw new Error('Gemini API error')
+        }
+
+        const geminiData = await geminiResponse.json()
+        const response = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || 'I\'m sorry, I couldn\'t generate a response right now. Please try again.'
+
+        return NextResponse.json({
+          response: response.trim(),
+          timestamp: new Date().toISOString()
+        })
+      } catch (error) {
+        console.error('Gemini API error:', error)
+        return NextResponse.json({
+          response: 'I\'m sorry, I\'m having trouble connecting to my knowledge base. Please try again later or contact us directly at +1 (555) 123-4567.',
+          timestamp: new Date().toISOString()
+        })
+      }
+    }
+
+    return NextResponse.json(
+      { 
+        error: 'Method not supported',
+        message: `POST method not supported for ${pathname}`
+      },
+      { status: 405 }
+    )
+
+  } catch (error) {
+    console.error('API POST Error:', error)
+    return NextResponse.json(
+      { 
+        error: 'Invalid request',
+        message: 'Please check your request format and try again'
+      },
+      { status: 400 }
+    )
+  }
+}
+
+// Handle other HTTP methods
+export async function PUT(request: NextRequest) {
+  return NextResponse.json(
+    { error: 'Method not allowed', message: 'PUT method not supported' },
+    { status: 405 }
+  )
+}
+
+export async function DELETE(request: NextRequest) {
+  return NextResponse.json(
+    { error: 'Method not allowed', message: 'DELETE method not supported' },
+    { status: 405 }
+  )
+}
