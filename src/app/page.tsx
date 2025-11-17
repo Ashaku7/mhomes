@@ -929,7 +929,7 @@ export default function MHomesResort() {
       )}      {/* Dining and Experiences sections removed per request. */}
 
       {/* Gallery Preview - Carousel Style */}
-      <section id="gallery" className="py-20 bg-[#1a1a1a] relative">
+      <section id="gallery" className="py-20 bg-gradient-to-b from-muted/30 via-background to-muted/30 relative">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 50 }}
@@ -981,10 +981,10 @@ export default function MHomesResort() {
                     src={slide.image}
                     alt={slide.title}
                     fill
-                    className="object-cover w-full h-full scale-110 blur-[2px] opacity-80"
+                    className="object-cover w-full h-full scale-110 blur-[2px] opacity-70"
                     priority
                   />
-                  <div className="absolute inset-0 bg-black/60" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-white/30 via-white/20 to-white/40" />
                 </div>
 
                 {/* Carousel content */}
@@ -995,8 +995,8 @@ export default function MHomesResort() {
                     onClick={goLeft}
                     className="flex flex-col items-center justify-center w-16 h-96 group bg-transparent border-none focus:outline-none"
                   >
-                    <span className="w-12 h-12 flex items-center justify-center rounded-full border border-white/40 bg-black/30 group-hover:bg-accent/80 transition-colors">
-                      <svg width="32" height="32" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" /></svg>
+                    <span className="w-12 h-12 flex items-center justify-center rounded-full border border-primary/40 bg-white/40 group-hover:bg-accent/80 transition-colors shadow-md">
+                      <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-primary group-hover:text-white"><path d="M15 19l-7-7 7-7" /></svg>
                     </span>
                   </button>
 
@@ -1026,8 +1026,8 @@ export default function MHomesResort() {
                     onClick={goRight}
                     className="flex flex-col items-center justify-center w-16 h-96 group bg-transparent border-none focus:outline-none"
                   >
-                    <span className="w-12 h-12 flex items-center justify-center rounded-full border border-white/40 bg-black/30 group-hover:bg-accent/80 transition-colors">
-                      <svg width="32" height="32" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" /></svg>
+                    <span className="w-12 h-12 flex items-center justify-center rounded-full border border-primary/40 bg-white/40 group-hover:bg-accent/80 transition-colors shadow-md">
+                      <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-primary group-hover:text-white"><path d="M9 5l7 7-7 7" /></svg>
                     </span>
                   </button>
                 </div>
