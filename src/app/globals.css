@@ -78,12 +78,30 @@
 }
 
 @layer base {
+  /* prevent horizontal scroll caused by overflowing children */
+  html, body, #__next {
+    overflow-x: hidden;
+  }
+
+  /* consistent box-sizing to avoid unexpected widths */
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
     scroll-behavior: smooth;
+    margin: 0;
+  }
+
+  /* ensure main app wrapper doesn't exceed viewport */
+  #__next > div {
+    max-width: 100vw;
+    overflow-x: hidden;
   }
 }
 

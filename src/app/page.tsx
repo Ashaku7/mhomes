@@ -14,19 +14,13 @@ import {
   Mail, 
   Wifi, 
   Car, 
-  Waves, 
-  Utensils,
-  Heart,
-  Dumbbell,
   MessageCircle,
   ChevronDown,
-  Calendar,
   Users,
   ArrowRight,
   Quote,
   Award,
   Shield,
-  Clock,
   Bath
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -39,6 +33,75 @@ import { Separator } from '@/components/ui/separator'
 export default function MHomesResort() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isChatOpen, setIsChatOpen] = useState(false)
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null)
+  const [selectedAmenitiesRoom, setSelectedAmenitiesRoom] = useState<string | null>(null)
+  const [carouselIndices, setCarouselIndices] = useState<{ [key: string]: number }>({})
+
+  // Hero booking form state
+  const [checkIn, setCheckIn] = useState<string | null>(null)
+  const [checkOut, setCheckOut] = useState<string | null>(null)
+  const [guests, setGuests] = useState<number>(2)
+
+  const handleHeroSearch = () => {
+    if (!checkIn || !checkOut) {
+      // lightweight UX feedback for now
+      if (typeof window !== 'undefined') window.alert('Please select check-in and check-out dates')
+      return
+    }
+    const el = document.getElementById('accommodations')
+    if (el) el.scrollIntoView({ behavior: 'smooth' })
+    setActiveSection('accommodations')
+    console.log('Hero search', { checkIn, checkOut, guests })
+  }
+
+  // Ensure hero video plays (autoplay policies may block play promise)
+  const heroVideoRef = useRef<HTMLVideoElement | null>(null)
+  const [heroAutoplayFailed, setHeroAutoplayFailed] = useState(false)
+  const [heroIsPlaying, setHeroIsPlaying] = useState(false)
+  const [heroError, setHeroError] = useState<string | null>(null)
+  const [heroCanPlay, setHeroCanPlay] = useState(false)
+
+  useEffect(() => {
+    const v = heroVideoRef.current
+    if (!v) return
+
+    // Ensure muted (helps autoplay), then try to play and handle rejected promise
+    v.muted = true
+    const p = v.play()
+    if (p && typeof p.then === 'function') {
+      p.then(() => {
+        setHeroIsPlaying(true)
+        // playing
+      }).catch((err) => {
+        // If autoplay is blocked, keep it muted and show a visual cue (could show play button)
+        console.warn('Hero video autoplay was prevented:', err)
+        setHeroAutoplayFailed(true)
+        // attempt a second time after a short delay
+        setTimeout(() => {
+          try {
+            v.muted = true
+            v.play().catch(() => {})
+          } catch (e) {}
+        }, 500)
+      })
+    }
+  }, [])
+
+  const getCarouselIndex = (roomName: string) => carouselIndices[roomName] || 0
+  
+  const nextImage = (roomName: string, totalImages: number) => {
+    setCarouselIndices(prev => ({
+      ...prev,
+      [roomName]: ((prev[roomName] || 0) + 1) % totalImages
+    }))
+  }
+  
+  const prevImage = (roomName: string, totalImages: number) => {
+    setCarouselIndices(prev => ({
+      ...prev,
+      [roomName]: ((prev[roomName] || 0) - 1 + totalImages) % totalImages
+    }))
+  }
   const [activeSection, setActiveSection] = useState('home')
   const [shouldAnimateHome, setShouldAnimateHome] = useState(false)
   const { scrollYProgress } = useScroll()
@@ -55,9 +118,8 @@ export default function MHomesResort() {
 
   const navigationItems = [
     { name: 'Home', href: '#home', icon: '🏠' },
+    { name: 'Story', href: '#story', icon: '📖' },
     { name: 'Accommodations', href: '#accommodations', icon: '🏨' },
-    { name: 'Dining', href: '#dining', icon: '🍽️' },
-    { name: 'Experiences', href: '#experiences', icon: '🌊' },
     { name: 'Gallery', href: '#gallery', icon: '📸' },
     { name: 'Reviews', href: '#reviews', icon: '⭐' },
     { name: 'Booking', href: '#booking', icon: '📅' },
@@ -66,85 +128,33 @@ export default function MHomesResort() {
 
   const accommodationTypes = [
     {
-      name: 'Ocean Villa',
-      description: 'Luxurious overwater villas with private infinity pools and panoramic ocean views',
-      image: resortImages.villa,
-      price: '$1,200',
-      features: ['Private Pool', 'Ocean View', '150 sqm', 'Butler Service']
-    },
-    {
-      name: 'Beach Suite',
-      description: 'Elegant beachfront suites with direct beach access and premium amenities',
-      image: resortImages.beach,
-      price: '$800',
-      features: ['Beach Access', 'King Bed', '80 sqm', 'Balcony']
-    },
-    {
       name: 'Premium Room',
       description: 'Sophisticated rooms with modern amenities and garden or pool views',
       image: resortImages.pool,
+      images: [resortImages.pool, resortImages.villa, resortImages.sunset],
       price: '$450',
+      bedType: 'Queen Bed',
+      sqft: '45 sqm',
+      maxGuests: '2',
       features: ['Pool View', 'Queen Bed', '45 sqm', 'Mini Bar']
     },
     {
       name: 'Deluxe Studio',
       description: 'Comfortable studios perfect for couples seeking luxury and convenience',
       image: resortImages.pier,
+      images: [resortImages.pier, resortImages.beach, resortImages.pool],
       price: '$320',
+      bedType: 'Double Bed',
+      sqft: '35 sqm',
+      maxGuests: '2',
       features: ['Garden View', 'Double Bed', '35 sqm', 'Work Desk']
     }
   ]
 
-  const diningOptions = [
-    {
-      name: 'Azure Restaurant',
-      type: 'Fine Dining',
-      description: 'Michelin-starred cuisine with breathtaking ocean views',
-      cuisine: 'International Fusion',
-      hours: '6:00 PM - 11:00 PM'
-    },
-    {
-      name: 'Sunset Lounge',
-      type: 'Bar & Grill',
-      description: 'Casual dining with craft cocktails and fresh seafood',
-      cuisine: 'Mediterranean',
-      hours: '12:00 PM - 2:00 AM'
-    },
-    {
-      name: 'Poolside Café',
-      type: 'Casual Dining',
-      description: 'Light meals and refreshing beverages by the infinity pool',
-      cuisine: 'Continental',
-      hours: '7:00 AM - 6:00 PM'
-    }
-  ]
-
-  const experiences = [
-    {
-      name: 'Spa & Wellness',
-      description: 'Rejuvenating treatments inspired by ancient healing traditions',
-      icon: Heart,
-      image: resortImages.sunset
-    },
-    {
-      name: 'Water Sports',
-      description: 'Diving, snorkeling, kayaking, and sailing adventures',
-      icon: Waves,
-      image: resortImages.beach
-    },
-    {
-      name: 'Fitness Center',
-      description: 'State-of-the-art equipment with personal trainers available',
-      icon: Dumbbell,
-      image: resortImages.pool
-    },
-    {
-      name: 'Cultural Tours',
-      description: 'Explore local culture, history, and hidden gems with expert guides',
-      icon: MapPin,
-      image: resortImages.pier
-    }
-  ]
+  const roomAmenities = {
+    'Premium Room': ['42-inch Smart TV', 'Premium Bedding', 'Rainfall Shower', 'Air Conditioning', 'Mini Bar', 'Work Desk', 'High-Speed WiFi', 'Flat-screen TV', 'Bath Robes', 'Premium Toiletries', 'Nespresso Machine', 'Safe Deposit Box', 'Turn-down Service', 'Daily Housekeeping'],
+    'Deluxe Studio': ['32-inch Smart TV', 'Luxury Bedding', 'Modern Bathroom', 'Climate Control', 'Kitchenette', 'Dining Area', 'High-Speed WiFi', 'Seating Area', 'Premium Toiletries', 'Walk-in Shower', 'Free Coffee Maker', 'Digital Lock', 'Express Check-in', 'Daily Cleaning']
+  }
 
   const testimonials = [
     {
@@ -173,15 +183,38 @@ export default function MHomesResort() {
   const amenities = [
     { icon: Wifi, name: 'High-Speed WiFi', description: 'Complimentary throughout resort' },
     { icon: Car, name: 'Valet Parking', description: 'Secure parking with valet service' },
-    { icon: Waves, name: 'Private Beach', description: 'Exclusive beach access' },
-    { icon: Utensils, name: 'Multiple Restaurants', description: '5-star dining experiences' },
-    { icon: Heart, name: 'Luxury Spa', description: 'Award-winning wellness center' },
-    { icon: Dumbbell, name: 'Fitness Center', description: '24/7 state-of-the-art gym' }
+    { icon: Users, name: 'Pickleball', description: 'Outdoor court available for engaging physical activities' },
+    { icon: Bath, name: 'Swimming Pool', description: 'A calm, cozy pool perfect for a refreshing dip.' },
+    { icon: MapPin, name: 'Meenakshi Amman Koil (Temple)', description: 'Nearby cultural landmark and local temples' }
   ]
+
+  const storyData = [
+    {
+      word: 'Madurai',
+      description: 'The ancient City of Temples, where thousands of years of history echo through sacred streets. Madurai inspires us to build a resort that honors tradition while embracing modern luxury. Every corner reflects the vibrant culture and warm hospitality that defines this legendary city.',
+      image: '/Madurai.png'
+    },
+    {
+      word: 'Meenakshi',
+      description: 'Goddess of divine beauty and strength, Meenakshi Amman embodies grace, power, and eternal elegance. Her legendary temple stands as a testament to architectural brilliance and spiritual majesty. We draw inspiration from her legend to create unforgettable moments of transcendence and wonder for our guests.',
+      image: '/Meenakshi.png'
+    },
+    {
+      word: 'Meen',
+      description: 'The fish, symbol of life, movement, and the boundless ocean that surrounds our paradise resort. Meen represents freedom, harmony with nature, and the gentle flow of luxury that permeates every experience. Our waters teem with life, just as our resort teems with unforgettable adventures.',
+      image: '/fish.png'
+    },
+    {
+      word: 'Meena',
+      description: 'Our visionary founder whose passion and dreams transformed an island into a sanctuary of luxury and wonder. Meena\'s dedication to excellence and unwavering commitment to guest happiness is woven into the very fabric of MHomes Resort. Her legacy is every smile, every memory, and every magical moment our guests experience.',
+      image: '/logo.png'
+    }
+  ]
+
 
   useEffect(() => {
     const handleScroll = () => {
-      const sections = ['home', 'accommodations', 'dining', 'experiences', 'gallery', 'reviews', 'booking', 'contact']
+      const sections = ['home', 'story', 'accommodations', 'gallery', 'reviews', 'booking', 'contact']
       const scrollPosition = window.scrollY + 100
 
       for (const section of sections) {
@@ -386,6 +419,8 @@ export default function MHomesResort() {
                   alt="MHomes Resort Logo"
                   width={180}
                   height={180}
+                  priority
+                  style={{ width: 'auto' }}
                   className="object-contain drop-shadow-lg"
                 />
               </motion.div>
@@ -441,89 +476,167 @@ export default function MHomesResort() {
         )}
       </nav>
 
-      {/* Hero Section */}
+      {/* Hero Section with video background, persistent logo/title and booking form */}
       <section id="home" className="relative h-screen overflow-hidden">
-        <motion.div style={{ y }} className="absolute inset-0">
-          <Image
-            src={resortImages.hero}
-            alt="MHomes Resort Paradise"
-            fill
-            sizes="100vw"
-            className="object-cover"
-            priority
-            fetchPriority="high"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/60" />
-        </motion.div>
+        {/* Video Background (placeholder) */}
+
+        <div className="absolute inset-0 z-0">
+          <video
+            ref={heroVideoRef}
+            className="w-full h-full object-fill object-center"
+            autoPlay
+            loop
+            playsInline
+            preload="auto"
+            poster={resortImages.hero}
+            controls
+            controlsList="nodownload"
+            style={{ pointerEvents: 'auto' }}
+            onCanPlay={() => {
+              console.log('Hero video can play')
+              setHeroCanPlay(true)
+              const v = heroVideoRef.current
+              if (v && v.paused) {
+                v.play().then(() => setHeroIsPlaying(true)).catch((e) => console.warn('play after canplay failed', e))
+              }
+            }}
+            onError={(e) => {
+              console.error('Hero video error', e)
+              setHeroError('Video failed to load/encode. Falling back to remote source.')
+              setHeroAutoplayFailed(true)
+            }}
+            onPlaying={() => {
+              setHeroIsPlaying(true)
+              setHeroAutoplayFailed(false)
+              setHeroError(null)
+            }}
+          >
+            {/* Local public video - served from /resort.mp4 */}
+            <source src="/resort.mp4" type="video/mp4" />
+            {/* Remote fallback */}
+            <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/10 to-black/60 pointer-events-none" />
+        </div>
+
+          {/* Play overlay (visible when autoplay fails or video is paused) */}
+          {heroAutoplayFailed && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-auto">
+              <button
+                onClick={async () => {
+                  const v = heroVideoRef.current
+                  if (!v) return
+                  try {
+                    v.muted = true
+                    await v.play()
+                    setHeroAutoplayFailed(false)
+                    setHeroIsPlaying(true)
+                  } catch (err) {
+                    console.warn('Manual play failed', err)
+                    setHeroError(String(err || 'play failed'))
+                  }
+                }}
+                className="bg-white/20 hover:bg-white/30 text-white rounded-full p-4 backdrop-blur-md shadow-lg"
+                aria-label="Play background video"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-10 h-10 text-white">
+                  <path d="M5 3v18l15-9L5 3z" />
+                </svg>
+              </button>
+            </div>
+          )}
+
+          {/* If there is a video error, show a small hint with retry */}
+          {heroError && (
+            <div className="absolute bottom-6 right-6 z-30">
+              <div className="bg-white/10 glass-effect text-white px-4 py-2 rounded-lg">
+                <div className="text-sm">{heroError}</div>
+                <div className="mt-2 flex gap-2">
+                  <Button size="sm" onClick={() => {
+                    setHeroError(null)
+                    setHeroAutoplayFailed(false)
+                    const v = heroVideoRef.current
+                    if (v) { v.load(); v.muted = true; v.play().catch(()=>{}) }
+                  }}>Retry</Button>
+                </div>
+              </div>
+            </div>
+          )}
         
+
+        {/* Persistent header overlay inside hero (logo + name) */}
+        <div className="absolute top-6 left-0 right-0 z-20 flex items-center justify-center pointer-events-none">
+            <div className="flex items-center gap-4 bg-white/10 glass-effect rounded-full px-4 py-2 backdrop-blur-sm pointer-events-auto">
+            <Image src="/mhomes-logo.png" alt="MHomes" width={64} height={64} style={{ width: 'auto' }} className="object-contain" />
+            <div className="text-white text-center">
+              <div className="luxury-heading text-2xl md:text-3xl mhomes-brown">mhomes</div>
+              <div className="luxury-text text-sm text-white/90 -mt-1">An Immortal Paradise by the Sea</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main hero content (centered) */}
         <div className="relative z-10 h-full flex flex-col justify-center items-center text-center text-white px-4">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
-            animate={{ 
-              opacity: 1, 
-              y: 0,
-              scale: shouldAnimateHome ? [1, 1.02, 1] : 1
-            }}
-            transition={{ 
-              duration: shouldAnimateHome ? 0.8 : 1.2,
-              scale: shouldAnimateHome ? { duration: 0.8, ease: "easeInOut" } : undefined
-            }}
-            className="max-w-6xl mx-auto"
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1 }}
+            className="max-w-4xl mx-auto"
           >
-            <motion.h1 
-              className="luxury-heading text-7xl md:text-9xl lg:text-[10rem] mb-6 tracking-wider font-light hero-text-shadow mhomes-brown"
-              initial={{ opacity: 0, y: 50 }}
+            <motion.h1
+              className="luxury-heading text-6xl md:text-8xl lg:text-[7rem] mb-4 tracking-wider font-light hero-text-shadow mhomes-brown"
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 1 }}
+              transition={{ delay: 0.2, duration: 0.8 }}
             >
               mhomes
             </motion.h1>
-            
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6, duration: 0.8 }}
-              className="mb-12"
-            >
-              <h2 className="luxury-heading text-2xl md:text-3xl lg:text-4xl mb-4 font-light tracking-wide hero-text-shadow">
-                An Immortal Paradise by the Sea
-              </h2>
-              <p className="luxury-text text-lg md:text-xl text-white/90 max-w-3xl mx-auto leading-relaxed hero-text-shadow">
-                Experience luxury redefined at MHomes Resort, where every moment becomes a treasured memory in our tropical paradise
-              </p>
-            </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.9, duration: 0.8 }}
-              className="flex flex-col sm:flex-row gap-6 justify-center items-center"
-            >
-              <Button 
-                size="lg" 
-                className="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border border-white/30 px-12 py-6 text-lg transition-all duration-300 hover:scale-105"
-              >
-                Book Your Stay
-                <ArrowRight className="ml-3 w-5 h-5" />
-              </Button>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="border-white/50 text-white hover:bg-white hover:text-primary px-12 py-6 text-lg transition-all duration-300 hover:scale-105"
-              >
-                Virtual Tour
-              </Button>
-            </motion.div>
+            <motion.p className="luxury-text text-lg md:text-xl text-white/90 max-w-2xl mx-auto leading-relaxed hero-text-shadow mb-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>
+              Experience luxury redefined at MHomes Resort, where every moment becomes a treasured memory in our tropical paradise
+            </motion.p>
+
+            {/* Booking form overlay */}
+            <div className="mt-6">
+              <div className="glass-effect rounded-xl p-4 md:p-6 flex flex-col md:flex-row items-center gap-4 shadow-xl backdrop-blur-md">
+                {/* Check-in */}
+                <div className="flex flex-col">
+                  <label className="luxury-text text-xs text-white/80 mb-1">Check-in</label>
+                  <input type="date" name="checkin" id="checkin" className="rounded-md p-2 bg-white/10 text-white border border-white/20" onChange={(e)=>setCheckIn(e.target.value)} value={checkIn || ''} />
+                </div>
+
+                {/* Check-out */}
+                <div className="flex flex-col">
+                  <label className="luxury-text text-xs text-white/80 mb-1">Check-out</label>
+                  <input type="date" name="checkout" id="checkout" className="rounded-md p-2 bg-white/10 text-white border border-white/20" onChange={(e)=>setCheckOut(e.target.value)} value={checkOut || ''} />
+                </div>
+
+                {/* Guests */}
+                <div className="flex flex-col">
+                  <label className="luxury-text text-xs text-white/80 mb-1">Guests</label>
+                  <select className="rounded-md p-2 bg-white/10 text-white border border-white/20" onChange={(e)=>setGuests(Number(e.target.value))} value={guests}>
+                    <option value={1}>1</option>
+                    <option value={2}>2</option>
+                    <option value={3}>3</option>
+                    <option value={4}>4</option>
+                    <option value={5}>5</option>
+                  </select>
+                </div>
+
+                <div className="mt-2 md:mt-0">
+                  <Button size="lg" className="bg-accent text-white px-6 py-3" onClick={() => handleHeroSearch()}>
+                    Search
+                    <ArrowRight className="ml-2 w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+              <p className="luxury-text text-xs text-white/80 mt-2"></p>
+            </div>
           </motion.div>
         </div>
-        
-        <motion.div 
-          className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-white"
-          animate={{ y: [0, 10, 0] }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-        >
-          <ChevronDown className="w-8 h-8" />
-        </motion.div>
+
+        {/* Down arrow removed as requested */}
       </section>
 
       {/* Resort Overview */}
@@ -544,17 +657,17 @@ export default function MHomesResort() {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
+                    <div className="grid grid-cols-5 gap-8 lg:gap-12">
             {amenities.map((amenity, index) => (
               <motion.div
                 key={amenity.name}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
+                transition={{ delay: index * 0.1  }}
                 className="text-center"
               >
-                <div className="w-16 h-16 mx-auto bg-accent/10 rounded-full flex items-center justify-center mb-4">
-                  <amenity.icon className="w-8 h-8 text-accent" />
+                <div className="w-28 h-28 mx-auto bg-accent/10 rounded-full flex items-center justify-center mb-6">
+                  <amenity.icon className="w-14 h-14 text-accent" />
                 </div>
                 <h3 className="luxury-heading text-sm font-semibold mb-2">{amenity.name}</h3>
                 <p className="luxury-text text-xs text-muted-foreground">{amenity.description}</p>
@@ -564,184 +677,259 @@ export default function MHomesResort() {
         </div>
       </section>
 
+      {/* Story Section */}
+      <section id="story" className="py-20 bg-muted/50">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="text-center max-w-4xl mx-auto mb-20"
+          >
+            <h2 className="luxury-heading text-4xl md:text-5xl mb-6 text-primary">
+              What does the <span className="text-accent">M</span> stand for?
+            </h2>
+            <p className="luxury-text text-xl text-muted-foreground">
+              Discover the profound meaning behind MHomes — a fusion of culture, mythology, nature, and visionary dreams.
+            </p>
+          </motion.div>
+
+          <div className="space-y-16">
+            {storyData.map((story, index) => (
+              <motion.div
+                key={story.word}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className={`grid grid-cols-1 md:grid-cols-2 gap-8 items-center ${
+                  index % 2 === 1 ? 'md:grid-flow-dense' : ''
+                }`}
+              >
+                {/* Image */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.8, delay: 0.1 }}
+                  className={`relative h-80 rounded-xl overflow-hidden shadow-2xl ${
+                    index % 2 === 1 ? 'md:col-start-2 md:row-start-1' : ''
+                  }`}
+                >
+                  <Image
+                    src={story.image}
+                    alt={story.word}
+                    fill
+                    sizes="(min-width: 768px) 45vw, 100vw"
+                    className="object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                </motion.div>
+
+                {/* Content */}
+                <motion.div
+                  initial={{ opacity: 0, x: index % 2 === 0 ? -30 : 30 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.8, delay: 0.2 }}
+                  className={index % 2 === 1 ? 'md:col-start-1 md:row-start-1' : ''}
+                >
+                  <h3 className="luxury-heading text-4xl md:text-5xl mb-6 text-primary">
+                    {story.word.split('').map((char, i) => (
+                      <span
+                        key={i}
+                        className={char === story.word[0] ? 'text-accent text-5xl md:text-6xl' : ''}
+                      >
+                        {char}
+                      </span>
+                    ))}
+                  </h3>
+                  <p className="luxury-text text-lg text-muted-foreground leading-relaxed mb-6">
+                    {story.description}
+                  </p>
+                  <div className="flex items-center gap-2 text-accent">
+                    <div className="h-1 w-12 bg-accent rounded-full" />
+                    <span className="luxury-heading text-sm">A pillar of MHomes</span>
+                  </div>
+                </motion.div>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+            className="text-center mt-20 max-w-3xl mx-auto"
+          >
+            <p className="luxury-text text-lg text-muted-foreground leading-relaxed">
+              These four pillars weave together the soul of <span className="text-accent font-semibold">MHomes Resort</span> — 
+              where ancient cultural heritage meets contemporary luxury, where nature flows freely, and where dreams transform into unforgettable realities.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Accommodations */}
-      <section id="accommodations" className="py-20 bg-muted/30">
+      <section id="accommodations" className="py-24 bg-gradient-to-b from-background via-muted/10 to-background">
         <div className="container mx-auto px-4">
           <motion.div
-            initial={{ opacity: 0, y: 50 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             className="text-center mb-16"
           >
-            <h2 className="luxury-heading text-4xl md:text-5xl mb-6 text-primary">
-              Exquisite Accommodations
-            </h2>
-            <p className="luxury-text text-xl text-muted-foreground max-w-3xl mx-auto">
-              Choose from our carefully curated selection of rooms and villas, each offering uncompromising luxury and breathtaking views.
+            <h2 className="luxury-heading text-4xl md:text-5xl mb-4 text-primary">Exquisite Accommodations</h2>
+            <p className="luxury-text text-lg text-muted-foreground max-w-3xl mx-auto">
+              Discover your perfect sanctuary with thoughtfully designed rooms tailored to your every need.
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {accommodationTypes.map((accommodation, index) => (
-              <motion.div
-                key={accommodation.name}
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.2 }}
-              >
-                <Card className="luxury-card overflow-hidden">
-                  <div className="relative h-48">
-                    <Image
-                      src={accommodation.image}
-                      alt={accommodation.name}
-                      fill
-                      sizes="(min-width: 1024px) 25vw, (min-width: 768px) 50vw, 100vw"
-                      className="object-cover transition-transform duration-500 hover:scale-105"
-                    />
-                    <div className="absolute top-4 right-4">
-                      <Badge className="bg-accent text-white">
-                        {accommodation.price}/night
-                      </Badge>
+          <div className="space-y-16">
+            {accommodationTypes.map((room, idx) => {
+              const currentImageIdx = getCarouselIndex(room.name)
+              const currentImage = room.images[currentImageIdx]
+              
+              return (
+                <motion.div
+                  key={room.name}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: idx * 0.2 }}
+                  className={`grid grid-cols-1 lg:grid-cols-2 gap-12 items-center ${idx % 2 === 1 ? 'lg:grid-flow-dense' : ''}`}
+                >
+                  {/* Image Carousel */}
+                  <div className={idx % 2 === 1 ? 'lg:col-start-2 lg:row-start-1' : ''}>
+                    <div className="relative rounded-2xl overflow-hidden shadow-2xl h-96 group">
+                      <Image
+                        src={currentImage}
+                        alt={room.name}
+                        fill
+                        sizes="(min-width: 1024px) 45vw, 100vw"
+                        className="object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+
+                      {/* Price Badge */}
+                      <div className="absolute top-6 left-6">
+                        <Badge className="bg-accent text-white text-lg px-4 py-2">{room.price}</Badge>
+                      </div>
+
+                      {/* Carousel Controls */}
+                      <button
+                        onClick={() => prevImage(room.name, room.images.length)}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white p-3 rounded-full transition-all"
+                      >
+                        ‹
+                      </button>
+                      <button
+                        onClick={() => nextImage(room.name, room.images.length)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white p-3 rounded-full transition-all"
+                      >
+                        ›
+                      </button>
+
+                      {/* Carousel Indicators */}
+                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                        {room.images.map((_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setCarouselIndices(prev => ({ ...prev, [room.name]: i }))}
+                            className={`w-2 h-2 rounded-full transition-all ${i === currentImageIdx ? 'bg-accent w-8' : 'bg-white/50'}`}
+                          />
+                        ))}
+                      </div>
                     </div>
                   </div>
-                  <CardHeader>
-                    <CardTitle className="luxury-heading text-xl">{accommodation.name}</CardTitle>
-                    <CardDescription className="luxury-text">
-                      {accommodation.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-2 mb-4">
-                      {accommodation.features.map((feature) => (
-                        <div key={feature} className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-accent rounded-full"></div>
-                          <span className="luxury-text text-sm">{feature}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <Button className="w-full">
-                      View Details
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* Dining */}
-      <section id="dining" className="py-20 bg-background">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            className="text-center mb-16"
-          >
-            <h2 className="luxury-heading text-4xl md:text-5xl mb-6 text-primary">
-              Culinary Excellence
-            </h2>
-            <p className="luxury-text text-xl text-muted-foreground max-w-3xl mx-auto">
-              Embark on a gastronomic journey with our world-renowned chefs and diverse dining experiences.
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {diningOptions.map((restaurant, index) => (
-              <motion.div
-                key={restaurant.name}
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.2 }}
-              >
-                <Card className="luxury-card">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="luxury-heading text-xl">{restaurant.name}</CardTitle>
-                      <Badge variant="outline">{restaurant.type}</Badge>
+                  {/* Room Details */}
+                  <div className={idx % 2 === 1 ? 'lg:col-start-1 lg:row-start-1' : ''}>
+                    <div className="mb-6">
+                      <h3 className="luxury-heading text-4xl md:text-5xl mb-4 text-primary">{room.name}</h3>
+                      <p className="luxury-text text-lg text-muted-foreground leading-relaxed">{room.description}</p>
                     </div>
-                    <CardDescription className="luxury-text">
-                      {restaurant.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Utensils className="w-4 h-4 text-accent" />
-                      <span className="luxury-text text-sm">{restaurant.cuisine}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-accent" />
-                      <span className="luxury-text text-sm">{restaurant.hours}</span>
-                    </div>
-                    <Button variant="outline" className="w-full">
-                      Make Reservation
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* Experiences */}
-      <section id="experiences" className="py-20 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            className="text-center mb-16"
-          >
-            <h2 className="luxury-heading text-4xl md:text-5xl mb-6 text-primary">
-              Unforgettable Experiences
-            </h2>
-            <p className="luxury-text text-xl text-muted-foreground max-w-3xl mx-auto">
-              Discover a world of possibilities with our curated experiences designed to create lasting memories.
-            </p>
-          </motion.div>
+                    {/* Room Specs */}
+                    <div className="grid grid-cols-3 gap-6 mb-10 p-6 bg-accent/5 rounded-xl border border-accent/20">
+                      <div className="text-center">
+                        <p className="luxury-text text-sm text-muted-foreground mb-2">Bed Type</p>
+                        <p className="luxury-heading text-xl">{room.bedType}</p>
+                      </div>
+                      <div className="text-center border-l border-r border-accent/10">
+                        <p className="luxury-text text-sm text-muted-foreground mb-2">Size</p>
+                        <p className="luxury-heading text-xl">{room.sqft}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="luxury-text text-sm text-muted-foreground mb-2">Guests</p>
+                        <p className="luxury-heading text-xl">{room.maxGuests}</p>
+                      </div>
+                    </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {experiences.map((experience, index) => (
-              <motion.div
-                key={experience.name}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.1 }}
-                className="group"
-              >
-                <Card className="luxury-card overflow-hidden">
-                  <div className="relative h-48">
-                    <Image
-                      src={experience.image}
-                      alt={experience.name}
-                      fill
-                      sizes="(min-width: 1024px) 25vw, (min-width: 768px) 50vw, 100vw"
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    <div className="absolute bottom-4 left-4">
-                      <experience.icon className="w-8 h-8 text-white" />
+                    {/* Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <Button size="lg" className="bg-accent text-white hover:bg-accent/90 px-12 py-3">
+                        Book Now
+                        <ArrowRight className="ml-2 w-5 h-5" />
+                      </Button>
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        className="border-primary text-primary hover:bg-primary/5"
+                        onClick={() => setSelectedAmenitiesRoom(room.name)}
+                      >
+                        View Amenities
+                      </Button>
                     </div>
                   </div>
-                  <CardHeader>
-                    <CardTitle className="luxury-heading text-xl">{experience.name}</CardTitle>
-                    <CardDescription className="luxury-text">
-                      {experience.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button variant="outline" className="w-full">
-                      Learn More
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+                </motion.div>
+              )
+            })}
           </div>
         </div>
       </section>
 
-      {/* Gallery Preview */}
-      <section id="gallery" className="py-20 bg-background">
+      {/* Amenities Modal */}
+      {selectedAmenitiesRoom && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-card rounded-2xl shadow-2xl max-w-3xl w-full max-h-[80vh] overflow-y-auto border border-accent/20"
+          >
+            <div className="sticky top-0 bg-gradient-to-r from-primary/10 to-accent/10 p-8 border-b border-accent/20 flex items-center justify-between">
+              <h2 className="luxury-heading text-3xl text-primary">{selectedAmenitiesRoom}</h2>
+              <button
+                onClick={() => setSelectedAmenitiesRoom(null)}
+                className="text-2xl text-muted-foreground hover:text-primary transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-8">
+              <h3 className="luxury-heading text-xl mb-8 text-primary">Premium Amenities & Features</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {roomAmenities[selectedAmenitiesRoom as keyof typeof roomAmenities]?.map((amenity, i) => (
+                  <motion.div
+                    key={amenity}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg border border-accent/10 hover:border-accent/30 transition-colors"
+                  >
+                    <div className="w-3 h-3 bg-accent rounded-full flex-shrink-0" />
+                    <span className="luxury-text">{amenity}</span>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            <div className="sticky bottom-0 bg-gradient-to-t from-background to-transparent p-6 flex justify-end gap-4 border-t border-accent/20">
+              <Button variant="outline" onClick={() => setSelectedAmenitiesRoom(null)}>Close</Button>
+              <Button className="bg-accent text-white">Book This Room</Button>
+            </div>
+          </motion.div>
+        </div>
+      )}      {/* Dining and Experiences sections removed per request. */}
+
+      {/* Gallery Preview - Carousel Style */}
+      <section id="gallery" className="py-20 bg-[#1a1a1a] relative">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 50 }}
@@ -756,32 +944,97 @@ export default function MHomesResort() {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {Object.entries(resortImages).map(([key, image], index) => (
-              <motion.div
-                key={key}
-                initial={{ opacity: 0, scale: 0.8 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.1 }}
-                className="relative aspect-square overflow-hidden rounded-lg group cursor-pointer"
-              >
-                <Image
-                  src={image}
-                  alt={`MHomes Resort ${key}`}
-                  fill
-                  sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
-                  className="object-cover transition-transform duration-500 group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              </motion.div>
-            ))}
-          </div>
-          
-          <div className="text-center mt-12">
-            <Button variant="outline" size="lg">
-              View Full Gallery
-            </Button>
-          </div>
+          {/* Carousel Data */}
+          {(() => {
+            // Carousel slides data
+            const gallerySlides = [
+              {
+                key: 'timeless-weddings',
+                image: resortImages.villa,
+                title: 'TIMELESS WEDDINGS',
+                description: 'Celebrate your special day in a setting of unmatched elegance and charm.'
+              },
+              {
+                key: 'taj-holidays',
+                image: resortImages.hero,
+                title: 'TAJ HOLIDAYS',
+                description: 'Go beyond the ordinary and craft enduring memories with a perfectly curated Taj Holiday.'
+              },
+              {
+                key: 'woyage-daycations',
+                image: resortImages.beach,
+                title: 'WOYAGE - DAYCATIONS',
+                description: 'Indulge in a day of luxury and relaxation at our beautiful resort.'
+              }
+            ];
+            const [galleryIndex, setGalleryIndex] = useState(1); // Start with the middle slide
+            const slide = gallerySlides[galleryIndex];
+
+            const goLeft = () => setGalleryIndex((i) => (i - 1 + gallerySlides.length) % gallerySlides.length);
+            const goRight = () => setGalleryIndex((i) => (i + 1) % gallerySlides.length);
+
+            return (
+              <div className="relative flex flex-col items-center justify-center min-h-[600px]">
+                {/* Large blurred background image */}
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] h-[480px] md:w-[80vw] md:h-[600px] rounded-3xl overflow-hidden z-0">
+                  <Image
+                    src={slide.image}
+                    alt={slide.title}
+                    fill
+                    className="object-cover w-full h-full scale-110 blur-[2px] opacity-80"
+                    priority
+                  />
+                  <div className="absolute inset-0 bg-black/60" />
+                </div>
+
+                {/* Carousel content */}
+                <div className="relative z-10 flex w-full items-center justify-center">
+                  {/* Left arrow */}
+                  <button
+                    aria-label="Previous"
+                    onClick={goLeft}
+                    className="flex flex-col items-center justify-center w-16 h-96 group bg-transparent border-none focus:outline-none"
+                  >
+                    <span className="w-12 h-12 flex items-center justify-center rounded-full border border-white/40 bg-black/30 group-hover:bg-accent/80 transition-colors">
+                      <svg width="32" height="32" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" /></svg>
+                    </span>
+                  </button>
+
+                  {/* Center card */}
+                  <div className="w-full max-w-2xl mx-4">
+                    <div className="relative flex flex-col items-center justify-end h-[420px] md:h-[500px]">
+                      <div className="absolute left-1/2 top-0 -translate-x-1/2 w-[90%] h-[70%] rounded-2xl overflow-hidden shadow-xl">
+                        <Image
+                          src={slide.image}
+                          alt={slide.title}
+                          fill
+                          className="object-cover w-full h-full"
+                        />
+                        <div className="absolute inset-0 bg-black/20" />
+                      </div>
+                      <div className="relative z-10 w-full bg-white/95 rounded-b-2xl p-8 flex flex-col items-center justify-center shadow-2xl min-h-[160px]">
+                        <h3 className="luxury-heading text-2xl md:text-3xl text-primary mb-2 text-center">{slide.title}</h3>
+                        <p className="luxury-text text-base md:text-lg text-muted-foreground text-center mb-4">{slide.description}</p>
+                        <Button variant="link" className="text-accent text-lg font-semibold">MORE &gt;</Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right arrow */}
+                  <button
+                    aria-label="Next"
+                    onClick={goRight}
+                    className="flex flex-col items-center justify-center w-16 h-96 group bg-transparent border-none focus:outline-none"
+                  >
+                    <span className="w-12 h-12 flex items-center justify-center rounded-full border border-white/40 bg-black/30 group-hover:bg-accent/80 transition-colors">
+                      <svg width="32" height="32" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" /></svg>
+                    </span>
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+
         </div>
       </section>
 
@@ -1026,6 +1279,8 @@ export default function MHomesResort() {
                     alt="MHomes Resort Logo"
                     width={120}
                     height={120}
+                    priority
+                    style={{ width: 'auto' }}
                     className="object-contain drop-shadow-lg"
                   />
                 </div>
