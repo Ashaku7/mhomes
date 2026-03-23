@@ -14,8 +14,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import {
   CalendarDays, Users, Search, Check, ChevronRight,
   Loader2, AlertCircle, Plus, Trash2, BedDouble,
-  CreditCard, Smartphone, Banknote, CheckCircle2,
-  ArrowLeft, Home
+  CheckCircle2, ArrowLeft, Home, PhoneCall
 } from 'lucide-react'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -80,7 +79,7 @@ const formatRoomType = (type: string) => {
 
 // ─── Step Indicator ──────────────────────────────────────────────────────────
 
-const steps = ['Search', 'Select Rooms', 'Guest Details', 'Payment']
+const steps = ['Search', 'Select Rooms', 'Guest Details']
 
 function StepIndicator({ current }: { current: number }) {
   return (
@@ -142,12 +141,6 @@ export default function ReservationPage() {
   const [idProofType, setIdProofType] = useState('')
   const [members, setMembers] = useState<Member[]>([])
   const [bookingResult, setBookingResult] = useState<BookingResult | null>(null)
-
-  // Step 4 state
-  const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'card' | 'cash'>('UPI')
-  const [transactionId, setTransactionId] = useState('')
-  const [confirmed, setConfirmed] = useState(false)
-  const [confirmationData, setConfirmationData] = useState<any>(null)
 
   // Pre-fill from URL if step=2 was passed
   useEffect(() => {
@@ -223,34 +216,8 @@ export default function ReservationPage() {
       }
       const res = await bookingsApi.createBooking(payload as any)
       setBookingResult(res.data.data)
-      setStep(4)
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Failed to create booking. Please try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // ── Step 4: Confirm payment ──────────────────────────────────────────────
-  const handleConfirmPayment = async () => {
-    if (!bookingResult) return
-    if ((paymentMethod === 'UPI' || paymentMethod === 'card') && !transactionId.trim()) {
-      setError('Please enter the transaction ID.')
-      return
-    }
-    setError(null)
-    setLoading(true)
-    try {
-      const res = await bookingsApi.confirmPayment(
-        bookingResult.bookingId,
-        bookingResult.totalAmount,
-        paymentMethod,
-        transactionId || undefined
-      )
-      setConfirmationData(res.data.data)
-      setConfirmed(true)
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Payment confirmation failed. Please contact the reception.')
     } finally {
       setLoading(false)
     }
@@ -288,8 +255,8 @@ export default function ReservationPage() {
 
       <div className="max-w-4xl mx-auto px-4 py-10">
 
-        {/* Confirmed screen */}
-        {confirmed && confirmationData ? (
+        {/* ── Request Sent confirmation screen ── */}
+        {bookingResult ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -301,25 +268,29 @@ export default function ReservationPage() {
               </div>
             </div>
             <h1 className="text-3xl font-light text-amber-100 mb-2" style={{ fontFamily: 'Playfair Display, serif' }}>
-              Booking Confirmed!
+              Request Sent!
             </h1>
-            <p className="text-stone-400 mb-8">Your reservation has been successfully confirmed.</p>
+            <p className="text-stone-400 mb-2">Your room block request has been received.</p>
 
-            <Card className="bg-stone-900 border-stone-800 max-w-md mx-auto mb-8">
+            <Card className="bg-stone-900 border-stone-800 max-w-md mx-auto my-8">
               <CardContent className="p-6 space-y-3 text-left">
-                <Detail label="Booking ID" value={`#${confirmationData.bookingId}`} highlight />
-                <Detail label="Guest" value={bookingResult?.guest.fullName || ''} />
-                <Detail label="Check-in" value={bookingResult?.checkIn || ''} />
-                <Detail label="Check-out" value={bookingResult?.checkOut || ''} />
-                <Detail label="Nights" value={`${bookingResult?.nights}`} />
-                <Detail label="Rooms" value={bookingResult?.rooms.map(r => r.roomNumber).join(', ') || ''} />
+                <Detail label="Booking ID" value={`#${bookingResult.bookingId}`} highlight />
+                <Detail label="Guest" value={bookingResult.guest.fullName} />
+                <Detail label="Check-in" value={bookingResult.checkIn} />
+                <Detail label="Check-out" value={bookingResult.checkOut} />
+                <Detail label="Nights" value={`${bookingResult.nights}`} />
+                <Detail label="Rooms" value={bookingResult.rooms.map(r => r.roomNumber).join(', ')} />
                 <div className="border-t border-stone-800 pt-3">
-                  <Detail label="Amount Paid" value={formatRs(confirmationData.amountPaid)} highlight />
-                  <Detail label="Payment Method" value={confirmationData.paymentMethod} />
-                  <Detail label="Status" value="Confirmed ✓" highlight />
+                  <Detail label="Total Amount" value={formatRs(bookingResult.totalAmount)} highlight />
+                  <Detail label="Status" value="Pending" />
                 </div>
               </CardContent>
             </Card>
+
+            <div className="flex items-center justify-center gap-2 text-stone-400 text-sm mb-6">
+              <PhoneCall className="w-4 h-4 text-amber-500" />
+              Our team will contact you shortly to confirm your booking and collect payment.
+            </div>
 
             <Link href="/">
               <Button className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white px-8">
@@ -634,111 +605,15 @@ export default function ReservationPage() {
                       <Button type="submit" disabled={loading}
                         className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold">
                         {loading ? (
-                          <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Creating Booking…</>
+                          <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Sending Request…</>
                         ) : (
-                          <>Confirm Booking <ChevronRight className="w-4 h-4 ml-1" /></>
+                          <>Send Block Request <ChevronRight className="w-4 h-4 ml-1" /></>
                         )}
                       </Button>
                     </div>
                   </form>
                 )}
 
-                {/* ─── STEP 4: PAYMENT ────────────────────────────────────── */}
-                {step === 4 && bookingResult && !confirmed && (
-                  <div className="max-w-xl mx-auto space-y-6">
-
-                    {/* Booking summary */}
-                    <Card className="bg-stone-900 border-stone-800">
-                      <CardContent className="p-6">
-                        <h2 className="text-lg font-semibold text-stone-100 mb-4">Booking Summary</h2>
-                        <div className="space-y-2.5 text-sm">
-                          <Detail label="Booking ID" value={`#${bookingResult.bookingId}`} highlight />
-                          <Detail label="Guest" value={bookingResult.guest.fullName} />
-                          <Detail label="Check-in" value={bookingResult.checkIn} />
-                          <Detail label="Check-out" value={bookingResult.checkOut} />
-                          <Detail label="Nights" value={`${bookingResult.nights}`} />
-                          <Detail label="Guests" value={`${bookingResult.totalGuests}`} />
-                          <Detail label="Rooms" value={bookingResult.rooms.map(r => `${r.roomNumber} (${formatRoomType(r.roomType)})`).join(', ')} />
-                          <div className="border-t border-stone-800 pt-2.5 mt-2.5">
-                            <Detail label="Total Amount" value={formatRs(bookingResult.totalAmount)} highlight />
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Payment form */}
-                    <Card className="bg-stone-900 border-stone-800">
-                      <CardContent className="p-6 space-y-5">
-                        <h2 className="text-lg font-semibold text-stone-100">Payment</h2>
-
-                        {!isAuthenticated && (
-                          <div className="flex items-start gap-2 bg-amber-950/40 border border-amber-800/40 rounded-lg px-4 py-3 text-sm">
-                            <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
-                            <p className="text-amber-300">Payment confirmation requires a login. You can complete payment at the reception, or <Link href="/login" className="underline text-amber-200">login here</Link>.</p>
-                          </div>
-                        )}
-
-                        {/* Payment method selector */}
-                        <div className="grid grid-cols-3 gap-3">
-                          {([
-                            { value: 'UPI', label: 'UPI', Icon: Smartphone },
-                            { value: 'card', label: 'Card', Icon: CreditCard },
-                            { value: 'cash', label: 'Cash', Icon: Banknote },
-                          ] as const).map(({ value, label, Icon }) => (
-                            <button
-                              key={value}
-                              type="button"
-                              onClick={() => setPaymentMethod(value)}
-                              className={`flex flex-col items-center gap-2 py-4 rounded-xl border transition-all ${paymentMethod === value
-                                ? 'border-amber-500 bg-amber-500/10 text-amber-400'
-                                : 'border-stone-800 bg-stone-800/50 text-stone-500 hover:border-stone-700'
-                                }`}
-                            >
-                              <Icon className="w-5 h-5" />
-                              <span className="text-sm font-medium">{label}</span>
-                            </button>
-                          ))}
-                        </div>
-
-                        {/* Transaction ID */}
-                        {(paymentMethod === 'UPI' || paymentMethod === 'card') && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            className="space-y-1.5"
-                          >
-                            <Label className="text-stone-400 text-sm">
-                              Transaction ID <span className="text-amber-500">*</span>
-                            </Label>
-                            <Input
-                              value={transactionId}
-                              onChange={e => setTransactionId(e.target.value)}
-                              placeholder={paymentMethod === 'UPI' ? 'UPI transaction ref' : 'Card auth / ref number'}
-                              className="bg-stone-800 border-stone-700 text-stone-100 focus:border-amber-500"
-                            />
-                          </motion.div>
-                        )}
-
-                        {error && <ErrorBox message={error} />}
-
-                        <Button
-                          onClick={handleConfirmPayment}
-                          disabled={loading || !isAuthenticated}
-                          className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold py-3 disabled:opacity-50"
-                        >
-                          {loading ? (
-                            <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Processing…</>
-                          ) : (
-                            <>
-                              <CheckCircle2 className="w-4 h-4 mr-2" />
-                              Confirm Payment — {formatRs(bookingResult.totalAmount)}
-                            </>
-                          )}
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </div>
-                )}
 
               </motion.div>
             </AnimatePresence>

@@ -51,4 +51,14 @@ const confirmPayment = async (req, res, next) => {
     }
 };
 
-module.exports = { getAvailableRooms, createBooking, confirmPayment };
+// GET /api/bookings/my
+const getMyBookings = async (req, res, next) => {
+    try {
+        const result = await bookingService.getMyBookings(req.user.id);
+        res.status(200).json({ success: true, data: result });
+    } catch (err) {
+        next(err);
+    }
+};
+
+module.exports = { getAvailableRooms, createBooking, confirmPayment, getMyBookings };

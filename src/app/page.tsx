@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import type { KeyboardEvent } from 'react'
 import { motion, useScroll, useTransform, useMotionTemplate, useMotionValue } from 'framer-motion'
 import Image from 'next/image'
@@ -21,7 +22,8 @@ import {
   Award,
   Shield,
   Bath,
-  Sparkles
+  Sparkles,
+  LogOut
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -30,8 +32,11 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import ChatWidget from '@/components/ChatWidget'
 import { Separator } from '@/components/ui/separator'
+import { useAuth } from '@/context/AuthContext'
 
 export default function MHomesResort() {
+  const router = useRouter()
+  const { user, isAuthenticated, logout } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isChatOpen, setIsChatOpen] = useState(false)
   const [isPageLoading, setIsPageLoading] = useState(true)
@@ -51,7 +56,6 @@ export default function MHomesResort() {
 
   const handleHeroSearch = () => {
     if (!checkIn || !checkOut) {
-      // lightweight UX feedback for now
       if (typeof window !== 'undefined') window.alert('Please select check-in and check-out dates')
       return
     }
@@ -60,9 +64,13 @@ export default function MHomesResort() {
       checkOut: checkOut || '',
       guests: guests.toString()
     })
-    if (typeof window !== 'undefined') {
-      window.location.href = `/reservation?${params.toString()}&step=2`
+    const reservationUrl = `/reservation?${params.toString()}&step=2`
+    if (!isAuthenticated) {
+      // Not logged in — send to login with redirect back to reservation + dates
+      router.push(`/login?redirect=${encodeURIComponent(reservationUrl)}`)
+      return
     }
+    router.push(reservationUrl)
   }
 
   // Initialize particles on client side only to avoid hydration mismatch
@@ -519,24 +527,50 @@ export default function MHomesResort() {
               ))}
             </div>
 
-            {/* Reserve Now Button */}
+            {/* Auth buttons — desktop */}
             <motion.div
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.95 }}
-              className="hidden lg:block"
+              className="hidden lg:flex items-center gap-2"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
             >
-              <Link href="/reservation">
-                <Button 
-                  className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold px-6 py-2 rounded-full shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
-                >
-                  <motion.span
-                    animate={{ y: [0, -3, 0] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  >
-                  </motion.span>
-                  Reserve Now
-                </Button>
-              </Link>
+              {isAuthenticated ? (
+                <>
+                  <span className="text-xs text-muted-foreground mr-1">Welcome, {user?.name?.split(' ')[0]}</span>
+                  <Link href="/reservation">
+                    <Button variant="outline" size="sm" className="border-accent/30 text-foreground hover:border-accent/60 text-xs px-3">
+                      My Bookings
+                    </Button>
+                  </Link>
+                  {(user?.role === 'admin' || user?.role === 'reception') && (
+                    <Link href="/admin">
+                      <Button variant="outline" size="sm" className="border-purple-500/30 text-purple-400 hover:border-purple-500/60 text-xs px-3">
+                        <Shield className="w-3 h-3 mr-1" /> Admin
+                      </Button>
+                    </Link>
+                  )}
+                  <Button size="sm" variant="ghost"
+                    onClick={logout}
+                    className="text-muted-foreground hover:text-red-400 text-xs px-3">
+                    <LogOut className="w-3 h-3 mr-1" /> Logout
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link href="/login">
+                    <Button variant="outline" size="sm"
+                      className="border-accent/30 text-foreground hover:border-accent/60 text-xs px-4">
+                      Sign In
+                    </Button>
+                  </Link>
+                  <Link href="/register">
+                    <Button size="sm"
+                      className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold text-xs px-4 rounded-full shadow-md">
+                      Register
+                    </Button>
+                  </Link>
+                </>
+              )}
             </motion.div>
 
             <motion.div
@@ -559,9 +593,6 @@ export default function MHomesResort() {
         {/* Mobile Menu */}
         {isMenuOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -20, height: 0 }}
-            animate={{ opacity: 1, y: 0, height: "auto" }}
-            exit={{ opacity: 0, y: -20, height: 0 }}
             className="lg:hidden glass-effect border-t border-accent/20"
           >
             <div className="container mx-auto px-4 py-4 space-y-3">
@@ -582,6 +613,39 @@ export default function MHomesResort() {
                   </Link>
                 </motion.div>
               ))}
+              {/* Mobile auth links */}
+              <div className="border-t border-accent/10 pt-3 space-y-2">
+                {isAuthenticated ? (
+                  <>
+                    <p className="text-xs text-muted-foreground px-3">Signed in as {user?.name}</p>
+                    <Link href="/reservation" onClick={() => setIsMenuOpen(false)}
+                      className="block luxury-text hover:text-accent transition-colors font-semibold py-2 px-3 rounded-lg hover:bg-accent/5">
+                      📅 My Bookings
+                    </Link>
+                    {(user?.role === 'admin' || user?.role === 'reception') && (
+                      <Link href="/admin" onClick={() => setIsMenuOpen(false)}
+                        className="block luxury-text hover:text-accent transition-colors font-semibold py-2 px-3 rounded-lg hover:bg-accent/5">
+                        🛡️ Admin Panel
+                      </Link>
+                    )}
+                    <button onClick={() => { logout(); setIsMenuOpen(false) }}
+                      className="block w-full text-left luxury-text text-red-400 hover:text-red-300 transition-colors font-semibold py-2 px-3 rounded-lg hover:bg-red-500/5">
+                      🚪 Logout
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/login" onClick={() => setIsMenuOpen(false)}
+                      className="block luxury-text hover:text-accent transition-colors font-semibold py-2 px-3 rounded-lg hover:bg-accent/5">
+                      🔑 Sign In
+                    </Link>
+                    <Link href="/register" onClick={() => setIsMenuOpen(false)}
+                      className="block luxury-text hover:text-accent transition-colors font-semibold py-2 px-3 rounded-lg hover:bg-accent/5">
+                      ✨ Register
+                    </Link>
+                  </>
+                )}
+              </div>
             </div>
           </motion.div>
         )}
@@ -1139,17 +1203,26 @@ export default function MHomesResort() {
                     {/* Buttons with enhanced interactions */}
                     <div className="flex flex-col sm:flex-row gap-4">
                       <motion.div
-                        className="flex-1"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        <Link href="/reservation" className="w-full">
-                          <Button size="lg" className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white hover:shadow-xl px-12 py-4 text-lg rounded-xl font-semibold">
-                            Reserve Now
-                            <ArrowRight className="ml-2 w-5 h-5" />
-                          </Button>
-                        </Link>
-                      </motion.div>
+                          className="flex-1"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          {isAuthenticated ? (
+                            <Link href="/reservation" className="w-full">
+                              <Button size="lg" className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white hover:shadow-xl px-12 py-4 text-lg rounded-xl font-semibold">
+                                Reserve Now
+                                <ArrowRight className="ml-2 w-5 h-5" />
+                              </Button>
+                            </Link>
+                          ) : (
+                            <Link href="/login?redirect=%2Freservation" className="w-full">
+                              <Button size="lg" className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white hover:shadow-xl px-12 py-4 text-lg rounded-xl font-semibold">
+                                Reserve Now
+                                <ArrowRight className="ml-2 w-5 h-5" />
+                              </Button>
+                            </Link>
+                          )}
+                        </motion.div>
                       <motion.div
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}

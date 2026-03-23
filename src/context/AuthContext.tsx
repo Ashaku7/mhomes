@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     deleteCookie('mhomes_token');
     setUser(null);
     if (typeof window !== 'undefined') {
-      window.location.href = '/login';
+      window.location.href = '/';
     }
   };
 

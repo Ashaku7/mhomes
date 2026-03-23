@@ -7,6 +7,12 @@ const { protect, restrictTo } = require('../middlewares/auth');
 // PUBLIC — anyone can check availability
 router.get('/rooms/available', controller.getAvailableRooms);
 
+// PROTECTED — get bookings for logged-in user (must come before :id routes)
+router.get('/bookings/my',
+    protect,
+    controller.getMyBookings
+);
+
 // PROTECTED — must be logged in to create a booking
 // reception and admin can create offline bookings
 // guests can create online bookings

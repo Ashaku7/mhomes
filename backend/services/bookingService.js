@@ -343,4 +343,60 @@ const confirmPayment = async ({ bookingId, amount, paymentMethod, transactionId 
     return result;
 };
 
-module.exports = { getAvailableRooms, createBooking, confirmPayment };
+// ─────────────────────────────────────────────────────────────
+// SERVICE 4: Get bookings for logged-in user
+// GET /api/bookings/my
+// ─────────────────────────────────────────────────────────────
+const getMyBookings = async (userId) => {
+    const bookings = await prisma.booking.findMany({
+        where: { userId: parseInt(userId) },
+        include: {
+            guest: {
+                select: {
+                    fullName:    true,
+                    phone:       true,
+                    email:       true,
+                    idProofType: true,
+                    members:     true,
+                },
+            },
+            bookingRooms: {
+                include: { room: true },
+            },
+            payments: true,
+        },
+        orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+        total: bookings.length,
+        bookings: bookings.map((b) => ({
+            id:            b.id,
+            bookingStatus: b.bookingStatus,
+            bookingSource: b.bookingSource,
+            checkIn:       b.checkIn,
+            checkOut:      b.checkOut,
+            totalGuests:   b.totalGuests,
+            totalAmount:   parseFloat(b.totalAmount),
+            notes:         b.notes,
+            createdAt:     b.createdAt,
+            guest:         b.guest,
+            rooms:         b.bookingRooms.map((br) => ({
+                id:            br.room.id,
+                roomNumber:    br.room.roomNumber,
+                roomType:      br.room.roomType,
+                pricePerNight: parseFloat(br.room.pricePerNight),
+            })),
+            payments: b.payments.map((p) => ({
+                id:            p.id,
+                amount:        parseFloat(p.amount),
+                paymentMethod: p.paymentMethod,
+                paymentStatus: p.paymentStatus,
+                transactionId: p.transactionId,
+                paymentDate:   p.paymentDate,
+            })),
+        })),
+    };
+};
+
+module.exports = { getAvailableRooms, createBooking, confirmPayment, getMyBookings };
